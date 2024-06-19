@@ -115,11 +115,24 @@ def hook_overflow(dv, fxn):
     except OverflowError: return dv
   return wfxn
 
+def sin(x, num_steps: int = 10):
+  """
+  Taylor's approximation for sin(x)
+  
+  Only calculates sin(x) for [0, pi/2) and makes negative for (x % 2pi) > pi by sign flip
+  """
+  folded_x = x % (math.pi / 2) # fold into top right quadrant of unit circle for efficiency and numerical stability
+  retval = 0.0
+  for n in range(0, num_steps): # num_steps is number of terms used (current degree of approximation is 2 * 9 + 1 = 19)
+    sign = 1.0 if n % 2 == 0 else -1.0 # alternating sum
+    retval += sign * (folded_x ** (2 * n + 1)) / (math.factorial(2 * n + 1))
+  return -retval if (x % (2 * math.pi)) > math.pi else retval
+
 python_alu = {
   UnaryOps.LOG2: lambda x: math.log2(x) if x > 0 else -math.inf if x == 0 else math.nan,
   UnaryOps.EXP2: hook_overflow(math.inf, lambda x: 2**x),
   UnaryOps.SQRT: lambda x: math.sqrt(x) if x >= 0 else math.nan,
-  UnaryOps.SIN: lambda x: math.sin(x) if not math.isinf(x) else math.nan,
+  UnaryOps.SIN: lambda x: sin(x) if not math.isinf(x) else math.nan,
   UnaryOps.RECIP: lambda x: 1/x if x != 0 else math.copysign(math.inf, x),
   UnaryOps.NEG: lambda x: (not x) if isinstance(x, bool) else -x,
   BinaryOps.SHR: operator.rshift, BinaryOps.SHL: operator.lshift,
